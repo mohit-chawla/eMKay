@@ -2,6 +2,10 @@
   "name": "socket-chat-example",
   "version": "0.0.1",
   "description": "V1 realtime chat messenger",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohit-chawla/eMKay.git"
+  },
   "dependencies": {
     "express": "^4.10.2",
     "socket.io": "^1.3.6"
