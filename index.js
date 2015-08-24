@@ -17,6 +17,9 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000
+var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
+
 connectedUsersList = [];
 
 // Defining a route handler '/' that gets called whenever we hit index.html
@@ -70,7 +73,7 @@ io.on('connection', function(socket){
 });
 
 //server listening
-http.listen(3000, function(){
+http.listen(server_port, server_ip_address, function(){
   console.log('listening on *:3000');
 });
 
