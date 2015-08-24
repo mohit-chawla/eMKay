@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Buzzlogs Group Chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      #chatbox{ display: none;}
+      #chatbox form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      #chatbox form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #chatbox form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+    /*  #messages li:nth-child(odd) { background: #eee; }
+    */
+      .self-message{
+        background-color: #DDDDDD; 
+
+      }
+      .remote-message{
+        background-color:#CCEBF1;
+      }
+      .user-left-message{
+        font-style: italic;
+        color:red;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="username-form-div">
+      <form id="username-form" action="">
+          Please enter a username:<br/>
+         <input id="username"/>
+         <input type="submit"/>
+         <p id="username-collision-error"></p>
+      </form>
+    </div>
+    <div id="connection-stats">
+      Connected Users List:
+      <div id="connected-users-list"></div>  
+    </div>
+    <p id="typing-status-div"></p>
+    <div id="chatbox">
+      <ul id="messages"></ul>
+      <form  id="chat-input-form" action="">
+        <input id="m" autocomplete="off" required><button>Send</button>
+      </form>
+    </div>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      var $usernameForm = $('#username-form');
+      var $username = $('#username');
+      var $usernameCollisionError = $('#username-collision-error');
+      var $connectedUsersList = $('#connected-users-list');
+      var $chatbox = $('#chatbox');
+      var $myUserName; //Stores the connected user's name/Unam
+      
+
+      //no url supplied here to let it try to connect to the host that serves the page by default
+      var socket = io();
+      $('form').submit(function(){
+        //when user types in a message, the server gets this event as 'chat message'
+          socket.emit('chat message', $('#m').val());
+        $('#m').val('');
+        return false;
+      });
+      //capturing the 'chat message' brodcasted to everyone(for testing) to be displayed in the ui
+      socket.on('new message', function(data){
+        if(data.sender == $myUserName){
+          $('#messages').append('<li class="self-message">'+data.sender+': '+data.message+'</li>');
+        }
+        else{
+          $('#messages').append('<li class="remote-message">'+data.sender+': '+data.message+'</li>');
+          
+        }
+      });
+      //Username related functionaity
+      //ADD: USER COLORS
+      $usernameForm.submit(function(e){
+        e.preventDefault();
+        $myUserName = $username.val();
+        console.log('my name is '+$myUserName);
+        socket.emit('new user', $username.val(), function(data){
+          if(data){
+            //if callback is false, i.e. username entered is unique
+            $usernameForm.hide(); //hide username form
+            $chatbox.show();      //show chatboz
+          }
+          else{
+            //Throw duplicate username error and prompt the user to try again
+            $usernameCollisionError.html('Username already exists. Please Try Again.');
+          }
+        });
+        //re-initiazlize the username input element
+        $username.val('');
+      });
+
+      //Used to show the list of users connected 
+      socket.on('connected users list', function(data){
+        var usersListMarkup = ''; //Used to build a markup
+        for(i=0;i<data.length;i++){
+          usersListMarkup += data[i] + '<br/>'
+        }
+        $connectedUsersList.html(usersListMarkup);  //Add the markup built to the front-end "users-list"
+      });
+      //chat functionalities end here
+
+
+      /*User is typing*/
+      var typing = false; //Initialize typing status to false
+      var typing_timeout = undefined; //Initialize `typing_timeout`
+
+      function typingTimeoutFunction(){
+        typing = false;
+        socket.emit('typing status', typing);
+      }
+
+       $("#m").keypress(function(){
+        if(typing == false){
+            typing = true;
+            socket.emit('typing status', typing);
+            typing_timeout = setTimeout( typingTimeoutFunction, 1000);
+        }
+        else{
+            clearTimeout(typing_timeout);
+            typing_timeout = setTimeout( typingTimeoutFunction, 1000);
+        }
+      });
+
+       //Fecthing the tpying status of the remote user from the server.
+       socket.on('typing status', function(typing){
+            var $typingStatusDiv = $('#typing-status-div');
+            if(typing.status && $myUserName!= typing.person){ // X is typing to all but X
+              $typingStatusDiv.html(typing.person+' is typing...');
+              setTimeout(function(){
+                    $typingStatusDiv.html('');
+                       
+              },2000);  
+            }
+       });
+
+       socket.on('user left', function(data){
+          $('#messages').append('<li class="user-left-message">'+data.name+'left the conversation'+'</li>');   
+       });
+    </script>
+    </body>
+</html>
