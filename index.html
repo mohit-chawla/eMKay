@@ -27,6 +27,7 @@
     </style>
   </head>
   <body>
+    <h1>Chat linked to db Test V1.0.6</h1> 
     <div id="username-form-div">
       <form id="username-form" action="">
           Please enter a username:<br/>
@@ -43,7 +44,7 @@
     <div id="chatbox">
       <ul id="messages"></ul>
       <form  id="chat-input-form" action="">
-        <input id="m" autocomplete="off" required><button>Send</button>
+        <input id="m" autocomplete="off" required><button id="send-msg-btn">Send</button>
       </form>
     </div>
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
@@ -104,6 +105,24 @@
         }
         $connectedUsersList.html(usersListMarkup);  //Add the markup built to the front-end "users-list"
       });
+
+      function displayMessages(data){
+        
+        for(var i = data.length-1; i > 0; i--){
+          if(data[i].userName == $myUserName){
+            $('#messages').append('<li class="self-message">'+data[i].userName+': '+data[i].message+'</li>');
+          }
+          else{
+            $('#messages').append('<li class="remote-message">'+data[i].userName+': '+data[i].message+'</li>');
+            
+          } 
+        }
+      }
+
+      socket.on('old msgs', function(data){
+        displayMessages(data);
+      });
+
       //chat functionalities end here
 
 
